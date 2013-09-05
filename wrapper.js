@@ -15,7 +15,7 @@ define([], function analyticsWrapperModule () {
       config,
       noop = function noop () {},
       slice = [].slice,
-      undef = (function (u) {return u;}())
+      undef = void 0
       ;
 
   function defaultStringValue (str, alternate) {
