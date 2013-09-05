@@ -1,7 +1,7 @@
 /**
  * Omniture / SiteCatalyst Module
  * Author - Joshua T Kalis <joshkalis@quickenloans.com>
- * 
+ *
  * @return {Object}
  *         The original object is returned, with a new method (api_call) added,
  *         for using the new API defined or all the original methods/properties.
@@ -15,7 +15,7 @@ define([], function analyticsWrapperModule () {
       config,
       noop = function noop () {},
       slice = [].slice,
-      undef = void 0
+      undef = (function (u) {return u;}())
       ;
 
   function defaultStringValue (str, alternate) {
@@ -36,7 +36,7 @@ define([], function analyticsWrapperModule () {
    * not had a context fixed for their execution; using Function.prototype.bind,
    * or any other similar way to fix a context other than the public object,
    * will pobably cause problems for the proper functioning of those methods.
-   * 
+   *
    * @type {Object}
    */
   API = {
@@ -119,8 +119,15 @@ define([], function analyticsWrapperModule () {
   });
 
   // Send data to analytics service
-  API.add("send", function add_send () {
-    // NOTE: a better method name might exist
+  API.add("send", function add_send (data) {
+    if (1 === arguments.length) {
+      for (var prop in data) {
+        if (data.hasOwnProperty(prop)) {
+          this[prop] = data[prop];
+        }
+      }
+    }
+
     this.t();
   });
 
@@ -226,8 +233,18 @@ define([], function analyticsWrapperModule () {
    */
   function facadeManagerMixin (subject) {
     subject
-      .api_call = function api_call (fn, args) {
-        var result;
+      .api_call = function api_call (fn/*, args...*/) {
+        var args,
+            optionalCall = false,
+            result;
+
+        // allow for calling api methods without throwing an error if it doesn't
+        // exist in the api instead of requiring all potentially non-existant
+        // method call to be wrapped in a try/catch
+        if (/\?/.test(fn)) {
+          fn = fn.slice(1);
+          optionalCall = true;
+        }
 
         if (API[fn]) {
           // args here is being changed to act as a "splat"; everything after
@@ -242,8 +259,10 @@ define([], function analyticsWrapperModule () {
           // otherwise return "subject" to enable a fluent API
           return (undef !== result ? result : subject);
         } else {
-          throw new Error("Method [%] not available in this API."
-            .replace("%", fn));
+          if (!optionalCall) {
+            throw new Error("Method [%] not available in this API."
+              .replace("%", fn));
+          }
         }
       };
 
